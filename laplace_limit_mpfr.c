@@ -55,7 +55,7 @@ int main(int argc, char* argv[]){
     mpfr_sub(x,x,temp1,MPFR_RNDN);
     mpfr_clear(temp1);
     
-    putchar('.');fflush(stdout);
+    //putchar('.');fflush(stdout);
   }
   mpfr_snprintf(buffer,digits+10,"%.*Rf",digits,x);
   printf("\n%s\n",buffer);
