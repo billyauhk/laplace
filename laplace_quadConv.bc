@@ -1,0 +1,49 @@
+#!/usr/bin/bc -l
+
+prec = 500
+scale = prec       
+pdisp = -10
+y = 1.1996
+#y = 1.1996786402
+log10 = 1/l(10)
+i=0
+
+dy = 1        # Dirty hack -- monkeying
+while(dy!=0){
+  # Cache several common-terms in the f, f' and f"
+  e2 = e(2*y);
+  denom = 1/(e2-1);
+  csch_half = e2*denom;
+  coth = csch_half+denom;
+
+  # Solve quadratic equation containing the derivatives
+  # (always take -ve root when initial guess is close enough)
+  t1 = coth*coth
+  temp = coth*csch_half^2
+  t2 = sqrt(coth^4-16*(coth-y)*temp)
+  dy = (t1-t2)/(8*temp)
+  y = y+dy
+
+  # Determine how many digits is valid
+  # (Can be commented out in real code)
+  scale = 0
+  if(dy!=0){
+    if(dy<0)dy=-dy;
+    scale = prec;  digit = l(dy)*log10
+    scale = 10;    disp = -digit/1
+    print "log10(dy)=",-disp,"\t"
+    if(pdisp>0){
+      print "order = ",disp/pdisp
+    }
+    print "\n"
+  }else{
+    print "DONE in ",i," iterations\n"
+  }
+  scale = prec
+
+  pdisp = disp
+  i = i+1
+}
+print "y=",y,"\n"
+print "x=",sqrt(y*y-1),"\n"
+quit
