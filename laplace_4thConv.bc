@@ -1,0 +1,64 @@
+#!/usr/bin/bc -l
+
+prec = 5000
+scale = prec
+pdisp = -10
+y = 1.1996
+#y = 1.1996786402
+log10 = 1/l(10)
+i=0
+
+dy = 1        # Dirty hack -- monkeying
+while(dy!=0){
+  # Cache several common-terms in the f, f' and f"
+  e1 = e(y);
+  e2 = e1*e1;
+  denom = 1/(e2-1);
+  csch = e1*denom;
+  coth = e1*csch+denom;
+  csch = csch+csch;
+  cosh2 = 0.5*(e2+1/e2)
+
+  # Compute f, f', f"/2 and f^(3)/6
+  f0 = coth-y
+  f1 = -coth*coth
+  cschsq = csch^2
+  f2 = coth*cschsq
+  f3 = -(cosh2+2)*(cschsq^2)/3
+
+#print "f0=",f0,"\n"
+#print "f1=",f1,"\n"
+#print "f2=",f2,"\n"
+#print "f3=",f3,"\n"
+
+  delta0 = f2^2 - 3*f3*f1
+  delta1 = 2*f2^3 - 9*f3*f2*f1 + 27*f3^2*f0
+  c=e(l((delta1+sqrt(delta1^2-4*delta0^3))/2)/3)
+  dy=(f2+c+delta0/c)/(-3*f3)
+  y = y+dy
+
+if(0){
+  # Determine how many digits is valid
+  # (Can be commented out in real code)
+  scale = 0
+  if(dy!=0){
+    if(dy<0)dy=-dy;
+    scale = prec;  digit = l(dy)*log10
+    scale = 10;    disp = -digit/1
+    print "log10(dy)=",-disp,"\t"
+    if(pdisp>0){
+      print "order = ",disp/pdisp
+    }
+    print "\n"
+  }else{
+    print "DONE in ",i," iterations\n"
+  }
+  scale = prec
+}
+
+  pdisp = disp
+  i = i+1
+}
+print "y=",y,"\n"
+print "x=",sqrt(y*y-1),"\n"
+quit

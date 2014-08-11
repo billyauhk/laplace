@@ -1,7 +1,7 @@
 #!/usr/bin/bc -l
 
-prec = 500
-scale = prec       
+prec = 5000
+scale = prec
 pdisp = -10
 y = 1.1996
 #y = 1.1996786402
@@ -24,6 +24,7 @@ while(dy!=0){
   dy = (t1-t2)/(8*temp)
   y = y+dy
 
+if(0){
   # Determine how many digits is valid
   # (Can be commented out in real code)
   scale = 0
@@ -40,6 +41,7 @@ while(dy!=0){
     print "DONE in ",i," iterations\n"
   }
   scale = prec
+}
 
   pdisp = disp
   i = i+1

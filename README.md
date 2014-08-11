@@ -14,7 +14,6 @@ For laplace_mpfr, argument 800 is used to match the 200 d.p.
 |laplace.dc|0m31.342s|0m31.105s|0m31.348s|
 |laplace_mpfr|0m0.043s|0m0.036s|0m0.033s|
 
-
 Tested on Fourtuna, initial value with 5 d.p.
 Requested argument 10000, output should be 2500 d.p.
 laplace_mpfr|0m18.276s|0m18.069s|0m18.078s|
@@ -27,5 +26,5 @@ mpfr3->mpfr4: A higher-order root finding method is used. Per iteration time is 
 
 Tested on Fourtuna, initial value with 5 d.p.
 Requested length 2495 d.p.
-|laplace_quad.bc|8m28.860s|
-
+|laplace_2ndConv.bc|1m26.226s|13m29.706s|
+|laplace_4thConv.bc|1m33.619s|17m35.945s|
