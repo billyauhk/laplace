@@ -16,13 +16,15 @@ For laplace_mpfr, argument 800 is used to match the 200 d.p.
 
 Tested on Fourtuna, initial value with 5 d.p.
 Requested argument 10000, output should be 2500 d.p.
-laplace_mpfr|0m18.276s|0m18.069s|0m18.078s|
-laplace_mpfr2|0m6.531s|0m6.555s|0m6.520s|
-laplace_mpfr3|0m6.539s|0m6.559s|0m6.505s|
-laplace_mpfr4|0m0.028s|0m0.022s|0m0.021s|
+|laplace_mpfr|0m18.276s|0m18.069s|0m18.078s|
+|laplace_mpfr2|0m6.531s|0m6.555s|0m6.520s|
+|laplace_mpfr3|0m6.539s|0m6.559s|0m6.505s|
+|laplace_mpfr4|0m0.028s|0m0.022s|0m0.021s|
+|laplace_mpfr5|0m0.054s|0m0.062s|0m0.059s|
 mpfr->mpfr2: Another equation is used which is faster
 mpfr2->mpfr3: Interrupt handling is added and now it could save and restore from continue.dat
-mpfr3->mpfr4: A higher-order root finding method is used. Per iteration time is also shortened.
+mpfr3->mpfr4: A end-order root finding method is used. Per iteration time is also shortened.
+mpfr5: Trying to use a 4-th order root finding method, but seems no improvement in total runtime. Will do parallelization.
 
 Tested on Fourtuna, initial value with 5 d.p.
 Requested length 2495 d.p.
