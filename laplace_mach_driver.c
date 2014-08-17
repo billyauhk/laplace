@@ -4,8 +4,7 @@
 
 int main(){
   initialize();
-  printf("Main thread is awake!\n");
-  sleep(1);
+  runMachine();
   printf("Main thread decided to kill threads!\n");
   terminate();
 }
