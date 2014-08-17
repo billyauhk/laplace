@@ -1,6 +1,5 @@
 // First trial of the parallel "Laplace machine" (i.e., a VM using MPFR calls as its basic elements)
 #include "laplace_mach.h"
-#include<mpfr.h>    // mpfr_*()
 #include<pthread.h> // pthread_*()
 #include<stdio.h>   // For definition of stdout
 #include<unistd.h>  // For sleep()
@@ -9,7 +8,11 @@
 
 // Allocate space for registers renaming
 #define REGISTER_COUNT 8
-mpfr_t r[REGISTER_COUNT];
+// We suspect register count is the upper bound for the window size
+// Which out-of-order executing more than WINDOW_SIZE ahead will be unsafe (may exhause reorder "registers")
+#define WINDOW_SIZE REGISTER_COUNT
+mpfr_t r[REGISTER_COUNT]; // The register buffer
+int rc[REGISTER_COUNT];   // The producing instruction of the content
 
 // Data for main thread
 pthread_mutex_t mtx_main;
@@ -28,17 +31,21 @@ int result[THREAD_COUNT];
 // ===== Below this line is the actual implementations ====
 
 // Function for creation of the threads
-void initialize(){
+void initialize(int precision){
+  mpfr_set_default_prec(precision);
+  for(int i=0;i<REGISTER_COUNT;i++){
+    mpfr_init(r[i]);
+  }
   pthread_mutex_init(&mtx_main, NULL);
   pthread_cond_init(&con_main, NULL);
-  for(int i=0;i<THREAD_COUNT;i++){
-    pthread_mutex_init(mtx_thread+i, NULL);
-    pthread_cond_init(con_thread+i, NULL);
+  for(int tid=0;tid<THREAD_COUNT;tid++){
+    pthread_mutex_init(mtx_thread+tid, NULL);
+    pthread_cond_init(con_thread+tid, NULL);
   }
-  for(int i=0;i<THREAD_COUNT;i++){
-    command[i] = 0;
-    result[i] = -1;
-    pthread_create(thread+i, NULL, &thread_main, (void*) i);
+  for(int tid=0;tid<THREAD_COUNT;tid++){
+    command[tid] = -1;
+    result[tid] = -1;
+    pthread_create(thread+tid, NULL, &thread_main, (void*) tid);
     pthread_mutex_lock(&mtx_main);
     pthread_cond_wait(&con_main, &mtx_main);
     pthread_mutex_unlock(&mtx_main);
@@ -53,15 +60,18 @@ void* thread_main(void *value){
 
   // A worker thread always have its own mutex when it is on
   pthread_mutex_lock(mtx_thread+tid);
-  while(command[tid]!=-1){
-    if(command[tid]!=0){
-      int waitTime = random()%10;
-      fprintf(stdout, "[%u] %d/%d Executing command %d: %d sec\n", time(NULL), tid, THREAD_COUNT, command[tid], waitTime);fflush(stdout);
-      sleep(waitTime);
+  while(command[tid]!=-2){
+    if(command[tid]!=-1){
+      fprintf(stdout, "[%u] %d/%d Executing exe[%d]: status=%u, type=%u, ptr=%p, refC=%d, currC=%d, func=%p, dest=%d, src1=%d, src2=%d, rndMode=%d\n",
+                      time(NULL), tid, THREAD_COUNT, command[tid], \
+                      exe[tid].status, exe[tid].type, exe[tid].ptr, exe[tid].refCount, exe[tid].currCount, \
+                      exe[tid].func, exe[tid].dest, exe[tid].src1, exe[tid].src2, exe[tid].rndMode);
+      fflush(stdout);
+      // TODO: The internal actual executing part
     }
     result[tid] = 0;
     // Release the lock before signal master
-    fprintf(stdout, "[%u] %d/%d Finished command %d\n", time(NULL), tid, THREAD_COUNT, command[tid]);fflush(stdout);
+    fprintf(stdout, "[%u] %d/%d Finished exe[%d]\n", time(NULL), tid, THREAD_COUNT, command[tid]);fflush(stdout);
     pthread_mutex_unlock(mtx_thread+tid);
     // Signal to master thread
     pthread_mutex_lock(&mtx_main);
@@ -78,13 +88,15 @@ void* thread_main(void *value){
 
 void runMachine(){
   // The Tomasulo algorithm will be placed here
-  int i=1;
-  while(i<20){
+  fprintf(stderr,"I got %u commands per loop\n", commandCount);
+
+  int i=0;
+  while(i<commandCount){
     int issueCommand = 0;
     for(int tid=0;tid<THREAD_COUNT;tid++){
       if(pthread_mutex_trylock(mtx_thread+tid)==0){
         if(result[tid]==0){
-          fprintf(stdout,"Main issue %d to %d/%d!\n", i, tid, THREAD_COUNT);
+          fprintf(stdout,"[%u] Main issue %d to %d/%d!\n", time(NULL), i, tid, THREAD_COUNT);
           issueCommand++;
           command[tid] = i;
           result[tid] = -1;
@@ -109,21 +121,22 @@ void runMachine(){
 
 // Function for destroy of the threads
 void terminate(){
-  for(int i=0;i<THREAD_COUNT;i++){
-    pthread_mutex_lock(mtx_thread+i);
-    command[i] = -1;
-    pthread_cond_signal(con_thread+i);
-    pthread_mutex_unlock(mtx_thread+i);
+  for(int tid=0;tid<THREAD_COUNT;tid++){
+    pthread_mutex_lock(mtx_thread+tid);
+    command[tid] = -2;
+    result[tid] = -1;
+    pthread_cond_signal(con_thread+tid);
+    pthread_mutex_unlock(mtx_thread+tid);
   }
-  fprintf(stdout,"Waiting for join\n");fflush(stdout);
-  for(int i=0;i<THREAD_COUNT;i++){
-    if(pthread_join(thread[i], NULL)!=0){
-      fprintf(stderr,"pthread_join() have an error!\n");fflush(stderr);
+  fprintf(stdout,"[%u] Waiting for join\n",time(NULL));fflush(stdout);
+  for(int tid=0;tid<THREAD_COUNT;tid++){
+    if(pthread_join(thread[tid], NULL)!=0){
+      fprintf(stderr,"pthread_join() of %d\%d have an error!\n",tid,THREAD_COUNT);fflush(stderr);
     }
   }
   // Clean up
-  for(int i=0;i<THREAD_COUNT;i++){
-    pthread_cond_destroy(con_thread+i);
+  for(int tid=0;tid<THREAD_COUNT;tid++){
+    pthread_cond_destroy(con_thread+tid);
   }
 }
 

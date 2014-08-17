@@ -3,7 +3,7 @@
 #include<unistd.h> // For sleep()
 
 int main(){
-  initialize();
+  initialize(100);
   runMachine();
   printf("Main thread decided to kill threads!\n");
   terminate();
