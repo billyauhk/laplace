@@ -184,6 +184,9 @@ void runMachine(){
     // Scan for a register which is available
     for(alloc_reg=0;alloc_reg<REGISTER_COUNT;alloc_reg++){
       if(rc[alloc_reg]==-1 || exe[rc[alloc_reg]].currCount==0){
+        if(exe[rc[alloc_reg]].currCount==0 && exe[rc[alloc_reg]].status==REF_COUNT && rc[alloc_reg]>i){
+          rc[alloc_reg] = REF_DEL;
+        }
         rc[alloc_reg]=-1;
         break;
       }
@@ -192,27 +195,28 @@ void runMachine(){
     // Scan for a command which is available for execution
     if(rc[alloc_reg]==-1){
       // (Conditionally) upgrade AHEAD_WIN to IN_WIN
-      for(int j=i;j<i+WINDOW_SIZE;j++){
+      for(int j=i;j<i+WINDOW_SIZE && j<commandCount;j++){
         if(exe[j].status==AHEAD_WIN)exe[j].status=IN_WIN;
       }
       // (Conditionally) upgrade IN_WIN to SRC_READY
-      for(int j=i;j<i+WINDOW_SIZE;j++){
+      for(int j=i;j<i+WINDOW_SIZE && j<commandCount;j++){
         if(exe[j].status==IN_WIN){
           switch(exe[j].type){
             case ONE_SRC:
-                if(exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src1].status==REF_COUNT && exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
             case TWO_SRC:
-                if(exe[exe[j].src1].dest!=-1 && exe[exe[j].src2].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src1].status==REF_COUNT && exe[exe[j].src1].dest!=-1 \
+                && exe[exe[j].src2].status==REF_COUNT && exe[exe[j].src2].dest!=-1)exe[j].status=SRC_READY;break;
             case SRC_UI:
-                if(exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src1].status==REF_COUNT && exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
             case UI_SRC:
-                if(exe[exe[j].src2].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src2].status==REF_COUNT && exe[exe[j].src2].dest!=-1)exe[j].status=SRC_READY;break;
             case SRC_SI:
-                if(exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src1].status==REF_COUNT && exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
             case SI_SRC:
-                if(exe[exe[j].src2].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src2].status==REF_COUNT && exe[exe[j].src2].dest!=-1)exe[j].status=SRC_READY;break;
             case PRINT:
-                if(exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
+                if(exe[exe[j].src1].status==REF_COUNT && exe[exe[j].src1].dest!=-1)exe[j].status=SRC_READY;break;
             case ASSIGN:
                 /* Do nothing as this is a virtual instruction */
               break;
@@ -223,7 +227,7 @@ void runMachine(){
         }
       }
       // (Conditionally) select instruction with SRC_READY
-      for(int j=i;j<i+WINDOW_SIZE;j++){
+      for(int j=i;j<i+WINDOW_SIZE && j<commandCount;j++){
         if(exe[j].status==SRC_READY){
           fprintf(stdout,"Selected command %d\n",j);fflush(stdout);
           couldIssue++;
@@ -256,6 +260,19 @@ void runMachine(){
       fprintf(stderr,"No command could be issued\n");fflush(stderr);
     }
 
+    for(int j=i;j<i+WINDOW_SIZE && j<commandCount;j++){
+      if(exe[j].status==REF_DEL || exe[j].status==BEHIND_WIN){
+        exe[j].status=BEHIND_WIN;
+        i=j;
+      }else{
+        break;
+      }
+    }
+    if(exe[commandCount-1].status==BEHIND_WIN){
+      // Now all commands are run
+      return;
+    }
+
     // If failed to issue any command, wait until sbd wakes me up
     if(issueCommand==-1){
       pthread_mutex_lock(&mtx_main);
@@ -265,11 +282,8 @@ void runMachine(){
       fprintf(stdout,"[%u] Main awake\n", time(NULL));
       continue;
     }
-    i++;
+    sleep(1); // TODO: Remove this and add the printScoreBoard here
   }
-  // All commands are issued, but we should guarantee all of them are finished before return
-  // TODO: Hold the execution here until all become BEHIND_WIN
-   
 }
 
 // Function for destroy of the threads
