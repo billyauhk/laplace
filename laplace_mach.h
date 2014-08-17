@@ -45,6 +45,7 @@ extern int commandCount;
 void* thread_main(void *tid);       // Thread entry point. The ALU's FSM
 void initialize(int precision);     // Initialize threads
 void resetScoreboard();             // Reset the entire executable for next loop
+void assign(int cid, mpfr_t* src);  // Assign values into the VM
 void runMachine();                  // Run all commands in the "executable"
 void incPrecision(int precision);   // Increase precision of all registers in the VM
 void assign(int cid, mpfr_t* dest); // Assign result of the cid-th command's result to dest
