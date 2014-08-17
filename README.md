@@ -27,6 +27,6 @@ mpfr3->mpfr4: A end-order root finding method is used. Per iteration time is als
 mpfr5: Trying to use a 4-th order root finding method, but seems no improvement in total runtime. Will do parallelization.
 
 Tested on Fourtuna, initial value with 5 d.p.
-Requested length 2495 d.p.
+|Requested length|2495 d.p.|5000 d.p.|
 |laplace_2ndConv.bc|1m26.226s|13m29.706s|
 |laplace_4thConv.bc|1m33.619s|17m35.945s|
